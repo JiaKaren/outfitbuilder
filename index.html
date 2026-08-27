@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atelier | Outfit Builder</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+
+    :root {
+      --ink: #3b2926;
+      --muted: #795f60;
+      --paper: #f0cfd6;
+      --panel: #f9e4e8;
+      --line: #d8aeb6;
+      --sage: #bf8191;
+      --green: #9d4f68;
+      --green-dark: #643a32;
+      --coral: #c96d7f;
+      --shadow: 0 18px 50px rgba(83, 42, 42, .13);
+      --nav-bg: #5b3c36;
+      --nav-border: #4b312d;
+      --nav-text: #f1d9da;
+      --nav-active: #efbec9;
+      --builder-bg: #f0cfd6;
+      --archive-bg: #e8c1b8;
+      --wardrobe-bg: #e6bcc7;
+      --slot-bg: rgba(255, 238, 242, .58);
+      --heading-weight: 700;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: var(--paper); font-family: 'DM Sans', sans-serif; }
+    button { border: 0; font: inherit; cursor: pointer; }
+    .shell { min-height: 100vh; display: grid; grid-template-columns: minmax(520px, 1.35fr) minmax(360px, .65fr); }
+    .builder { padding: 38px clamp(30px, 5vw, 80px) 42px; position: relative; overflow: hidden; }
+    .builder::before { content: ''; position: absolute; width: 360px; height: 360px; border-radius: 50%; background: #f3e1e5; top: -160px; left: -120px; z-index: -1; }
+    .eyebrow { color: var(--green); font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; }
+    h1, h2, p { margin: 0; }
+    h1 { font-family: 'Playfair Display', serif; font-size: clamp(42px, 5vw, 72px); line-height: .98; letter-spacing: -.04em; font-weight: 700; max-width: 540px; margin: 14px 0 15px; }
+    .intro { color: var(--muted); max-width: 440px; font-size: 15px; line-height: 1.7; }
+    .canvas-head { display: flex; align-items: end; justify-content: space-between; margin: 48px 0 18px; }
+    .canvas-head h2 { font-family: 'Playfair Display', serif; font-size: 24px; }
+    .canvas-hint { color: var(--muted); font-size: 12px; }
+    .outfit-canvas { position: relative; display: grid; grid-template-columns: 1.08fr .92fr; grid-template-rows: 190px 138px 138px; gap: 12px; min-height: 490px; }
+    .slot { position: relative; overflow: hidden; border: 1px dashed #c6939e; border-radius: 16px; background: var(--slot-bg); transition: transform .2s ease, box-shadow .2s ease; }
+    .slot:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(42, 48, 37, .08); }
+    .slot.top { grid-column: 1; grid-row: 1; }
+    .slot.bottom { grid-column: 1; grid-row: 2 / 4; }
+    .slot.hair { grid-column: 2; grid-row: 1; }
+    .slot.accessory { grid-column: 2; grid-row: 2; }
+    .slot.shoes { grid-column: 2; grid-row: 3; }
+    .slot.empty { display: grid; place-items: center; padding: 20px; }
+    .empty-content { display: grid; justify-items: center; gap: 9px; color: var(--muted); text-align: center; }
+    .plus { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid #c6939e; border-radius: 50%; color: var(--green); font-size: 23px; font-weight: 400; }
+    .empty-title { color: var(--ink); font-size: 14px; font-weight: 700; text-transform: capitalize; }
+    .empty-content small { font-size: 11px; }
+    .selected-item { width: 100%; height: 100%; position: relative; animation: reveal .35s ease both; }
+    .selected-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .slot.top img, .slot.bottom img { object-position: center 28%; }
+    .selected-label { position: absolute; inset: auto 10px 10px; padding: 9px 11px; border-radius: 9px; color: #fff; background: rgba(67, 28, 43, .76); backdrop-filter: blur(8px); font-size: 11px; font-weight: 700; }
+    .selected-label span { display: block; opacity: .72; font-size: 9px; font-weight: 500; margin-top: 2px; }
+    .edit-tag { position: absolute; top: 10px; right: 10px; opacity: 0; padding: 6px 9px; border-radius: 7px; color: var(--ink); background: #fffefa; font-size: 10px; font-weight: 700; transition: opacity .2s; }
+    .slot:hover .edit-tag { opacity: 1; }
+    .save-button { position: absolute; z-index: 2; right: 14px; bottom: 14px; width: 58px; height: 58px; border: 5px solid var(--paper); border-radius: 50%; color: #fff; background: var(--green); box-shadow: 0 9px 18px rgba(163, 79, 105, .3); font-size: 28px; line-height: 1; transition: transform .2s, background .2s; }
+    .save-button:hover { transform: scale(1.08) rotate(-4deg); background: var(--green-dark); }
+
+    .history { min-height: 100vh; padding: 44px clamp(28px, 5vw, 70px); border-left: 1px solid var(--line); background: #e8c1b8; }
+    .history-top { display: flex; justify-content: space-between; align-items: start; gap: 20px; }
+    .history h2 { font-family: 'Playfair Display', serif; font-size: 32px; letter-spacing: -.03em; }
+    .counter { min-width: 38px; height: 28px; display: grid; place-items: center; padding: 0 10px; border-radius: 20px; color: var(--green); background: #f3dfe5; font-size: 12px; font-weight: 700; }
+    .history-rule { height: 1px; background: var(--line); margin: 22px 0 25px; }
+    .empty-history { min-height: 270px; display: grid; place-items: center; align-content: center; text-align: center; padding: 40px 18px; border: 1px dashed #ead8dd; border-radius: 16px; }
+    .empty-history .mark { color: var(--sage); font-family: 'Playfair Display', serif; font-size: 48px; line-height: 1; margin-bottom: 14px; }
+    .empty-history p { color: var(--muted); font-size: 13px; line-height: 1.6; max-width: 210px; }
+    .saved-list { display: grid; gap: 14px; }
+    .saved-card { overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: 0 8px 20px rgba(35, 42, 32, .04); animation: slideIn .4s ease both; }
+    .saved-collage { position: relative; overflow: hidden; width: 100%; aspect-ratio: 3 / 4; background: #f8dfe4; }
+    .saved-collage::after { content: ''; position: absolute; inset: 0; pointer-events: none; border: 8px solid rgba(255, 246, 247, .62); }
+    .saved-collage img { position: absolute; display: block; object-fit: cover; border: 3px solid rgba(255, 246, 247, .8); }
+    .saved-collage img[data-piece="top"] { top: 4%; left: 3%; width: 50%; height: 31%; object-position: center 25%; }
+    .saved-collage img[data-piece="bottom"] { bottom: 3%; left: 3%; width: 50%; height: 63%; object-position: center 28%; }
+    .saved-collage img[data-piece="hair"] { top: 4%; right: 3%; width: 41%; height: 31%; object-position: center 20%; }
+    .saved-collage img[data-piece="accessory"] { top: 38%; right: 3%; width: 41%; height: 25%; object-position: center; }
+    .saved-collage img[data-piece="shoes"] { bottom: 3%; right: 3%; width: 41%; height: 32%; object-position: center; }
+    .saved-card-body { padding: 15px 16px 17px; }
+    .saved-card-body strong { display: block; font-family: 'Playfair Display', serif; font-size: 17px; margin-bottom: 6px; }
+    .saved-card-body p { color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .saved-card-body time { display: block; color: var(--green); font-size: 10px; font-weight: 700; margin-top: 12px; text-transform: uppercase; letter-spacing: .08em; }
+
+    .modal-backdrop { display: none; position: fixed; z-index: 10; inset: 0; padding: 25px; background: rgba(62, 30, 42, .46); backdrop-filter: blur(5px); align-items: center; justify-content: center; }
+    .modal-backdrop.open { display: flex; }
+    .modal { width: min(790px, 100%); max-height: min(700px, 90vh); overflow: auto; border-radius: 18px; background: #fffefa; box-shadow: 0 25px 80px rgba(75, 30, 48, .24); animation: modalIn .25s ease both; }
+    .modal-header { display: flex; align-items: start; justify-content: space-between; padding: 27px 28px 21px; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 1; background: #fffefa; }
+    .modal-header h2 { font-family: 'Playfair Display', serif; font-size: 27px; }
+    .modal-header p { color: var(--muted); font-size: 12px; margin-top: 5px; }
+    .close { width: 32px; height: 32px; border-radius: 50%; color: var(--muted); background: #f7e9ed; font-size: 20px; }
+    .catalog { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; padding: 24px 28px 30px; }
+    .catalog-item { overflow: hidden; padding: 0; text-align: left; border: 1px solid var(--line); border-radius: 11px; color: var(--ink); background: #fffefa; transition: transform .2s, border-color .2s, box-shadow .2s; }
+    .catalog-item:hover { transform: translateY(-3px); border-color: var(--sage); box-shadow: 0 10px 20px rgba(30, 45, 33, .1); }
+    .catalog-item img { width: 100%; height: 145px; display: block; object-fit: cover; }
+    .item-copy { padding: 12px 13px 14px; }
+    .item-copy strong { display: block; font-family: 'Playfair Display', serif; font-size: 16px; margin-bottom: 5px; }
+    .item-copy p { min-height: 32px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .toast { position: fixed; z-index: 20; right: 25px; bottom: 24px; padding: 13px 17px; border-radius: 9px; color: #fff; background: var(--green-dark); font-size: 12px; box-shadow: var(--shadow); transform: translateY(20px); opacity: 0; pointer-events: none; transition: .3s; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .app-nav { display: flex; align-items: center; justify-content: space-between; gap: 22px; padding: 20px clamp(24px, 5vw, 80px); border-bottom: 1px solid var(--nav-border); background: var(--nav-bg); }
+    .brand { color: #fff1f2; font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; text-decoration: none; letter-spacing: -.04em; }
+    .brand span { color: var(--coral); }
+    .nav-links { display: flex; gap: 7px; }
+    .nav-link { padding: 9px 13px; border-radius: 7px; color: var(--nav-text); background: transparent; font-size: 12px; font-weight: 700; transition: .2s; }
+    .nav-link:hover, .nav-link.active { color: var(--nav-bg); background: var(--nav-active); }
+    .theme-switch { display: grid; place-items: center; flex: 0 0 auto; width: 38px; height: 38px; margin-left: auto; border: 1px solid rgba(255, 241, 242, .35); border-radius: 50%; color: #fff1f2; background: transparent; transition: .2s; }
+    .theme-switch:hover { color: var(--nav-bg); background: var(--nav-active); transform: rotate(-5deg); }
+    .theme-switch svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+    .icon-bow { display: none; }
+    body[data-theme="navy-khaki"] .icon-tie { display: none; }
+    body[data-theme="navy-khaki"] .icon-bow { display: block; }
+    .page { display: none; min-height: calc(100vh - 73px); }
+    .page.active { display: block; animation: pageIn .35s ease both; }
+    .page-heading { max-width: 780px; margin-bottom: 34px; }
+    .page-heading h1 { font-size: clamp(40px, 5vw, 64px); margin-bottom: 14px; }
+    .page-heading p { color: var(--muted); max-width: 480px; font-size: 14px; line-height: 1.7; }
+    .builder-page { padding: 50px clamp(24px, 8vw, 130px) 70px; background: var(--builder-bg); }
+    .builder-page .outfit-canvas { max-width: 850px; }
+    .archive-page { padding: 50px clamp(24px, 8vw, 130px) 70px; background: var(--archive-bg); }
+    .wardrobe-page { padding: 50px clamp(24px, 8vw, 130px) 70px; background: var(--wardrobe-bg); }
+    .archive-layout { max-width: 900px; }
+    .archive-layout .history { min-height: auto; padding: 0; border: 0; background: transparent; }
+    .archive-layout .history-top { display: none; }
+    .archive-layout .history-rule { display: none; }
+    .archive-layout .empty-history { max-width: 560px; background: rgba(255, 239, 237, .54); }
+    .archive-layout .saved-list { grid-template-columns: repeat(2, 1fr); }
+    .wardrobe-layout { display: grid; grid-template-columns: minmax(240px, .65fr) minmax(420px, 1.35fr); gap: 48px; max-width: 1080px; align-items: start; }
+    .log-form { position: sticky; top: 25px; padding: 25px; border: 1px solid #c9909d; border-radius: 14px; background: var(--panel); box-shadow: var(--shadow); }
+    .log-form h2, .category-title { font-family: 'Playfair Display', serif; font-size: 25px; margin-bottom: 18px; }
+    .field { display: grid; gap: 7px; margin-bottom: 15px; }
+    .field label { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .field input, .field select, .field textarea { width: 100%; border: 1px solid #dfe2da; border-radius: 7px; padding: 11px 12px; color: var(--ink); background: #fbfaf7; font: inherit; font-size: 12px; outline: none; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px #e5efe6; }
+    .field textarea { min-height: 76px; resize: vertical; }
+    .primary-button { width: 100%; padding: 12px 15px; border-radius: 7px; color: #fff; background: var(--green); font-size: 12px; font-weight: 700; transition: .2s; }
+    .primary-button:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .wardrobe-categories { display: grid; gap: 27px; }
+    .category-section { padding-bottom: 23px; border-bottom: 1px solid var(--line); }
+    .category-title { display: flex; align-items: center; justify-content: space-between; font-size: 22px; margin-bottom: 13px; }
+    .category-title span { color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .category-items { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .wardrobe-item { overflow: hidden; border: 1px solid var(--line); border-radius: 9px; background: #fffefa; }
+    .wardrobe-item img { display: block; width: 100%; height: 106px; object-fit: cover; }
+    .wardrobe-item div { padding: 10px; }
+    .wardrobe-item strong { display: block; font-family: 'Playfair Display', serif; font-size: 14px; margin-bottom: 3px; }
+    .wardrobe-item small { color: var(--muted); font-size: 10px; line-height: 1.4; }
+    .wardrobe-empty { color: var(--muted); font-size: 12px; padding: 12px 0; }
+    @keyframes pageIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 760px) { .app-nav { padding: 17px 18px; } .brand { font-size: 20px; } .nav-links { gap: 2px; } .nav-link { padding: 8px 7px; font-size: 10px; } .wardrobe-layout { grid-template-columns: 1fr; gap: 38px; } .log-form { position: static; } .archive-layout .saved-list { grid-template-columns: 1fr 1fr; } }
+    body[data-theme="navy-khaki"] { --ink: #e9eef4; --muted: #b7c3d0; --paper: #203348; --panel: #2c435a; --line: #526b82; --sage: #a9bed0; --green: #b4cee3; --green-dark: #12263b; --coral: #d6a0b0; --nav-bg: #12263b; --nav-border: #304961; --nav-text: #c8d8e5; --nav-active: #b7cde0; --builder-bg: #203348; --archive-bg: #30465a; --wardrobe-bg: #263e54; --slot-bg: rgba(66, 91, 113, .72); --heading-weight: 800; }
+    body[data-theme="navy-khaki"] .page-heading h1, body[data-theme="navy-khaki"] .canvas-head h2, body[data-theme="navy-khaki"] .history h2, body[data-theme="navy-khaki"] .log-form h2, body[data-theme="navy-khaki"] .category-title, body[data-theme="navy-khaki"] .modal-header h2, body[data-theme="navy-khaki"] .saved-card-body strong, body[data-theme="navy-khaki"] .wardrobe-item strong { font-weight: var(--heading-weight); }
+    @media (max-width: 480px) { .category-items { grid-template-columns: repeat(2, 1fr); } }
+    @keyframes reveal { from { opacity: 0; transform: scale(1.04); } to { opacity: 1; transform: scale(1); } }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes modalIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @media (max-width: 900px) { .shell { grid-template-columns: 1fr; } .history { min-height: auto; border-left: 0; border-top: 1px solid var(--line); } }
+    @media (max-width: 560px) { .builder { padding: 28px 18px 32px; } .history { padding: 32px 18px 42px; } .outfit-canvas { grid-template-columns: 1fr 1fr; grid-template-rows: 170px 125px 125px; gap: 8px; } .catalog { grid-template-columns: 1fr 1fr; padding: 18px; gap: 10px; } .catalog-item img { height: 125px; } .modal-header { padding: 22px 18px 17px; } .canvas-head { margin-top: 35px; } }
+  </style>
+</head>
+<body data-theme="rose-brown">
+  <header class="app-nav">
+    <a class="brand" href="#builder">atelier<span>.</span></a>
+    <nav class="nav-links" aria-label="Main navigation">
+      <button class="nav-link active" data-page="builder">Build a look</button>
+      <button class="nav-link" data-page="archive">Saved outfits <span id="navCount"></span></button>
+      <button class="nav-link" data-page="wardrobe">My wardrobe</button>
+    </nav>
+    <button class="theme-switch" id="themeSwitch" aria-label="Switch to navy theme" title="Switch theme">
+      <span class="icon-tie" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 3h6l-1 5 2 3-4 10-4-10 2-3z"/><path d="M10 3h4"/></svg></span>
+      <span class="icon-bow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 10.5 4 7l1 7 7-2.5M12 10.5 20 7l-1 7-7-2.5M10.5 12h3"/><circle cx="12" cy="12" r="1.5"/></svg></span>
+    </button>
+  </header>
+
+  <main>
+    <section class="page builder-page active" id="page-builder" aria-label="Outfit builder">
+      <div class="page-heading"><div class="eyebrow">Personal styling studio / 01</div><h1>Compose your<br><em>everyday</em> edit.</h1><p>Build a considered look from the pieces you love. Select a space on the canvas to begin styling.</p></div>
+      <div class="canvas-head"><h2>Today's canvas</h2><span class="canvas-hint">5 pieces / 1 look</span></div>
+      <div class="outfit-canvas">
+        <button class="slot top empty" data-slot="top" aria-label="Choose top"><span class="empty-content"><span class="plus">+</span><span class="empty-title">Top</span><small>Add a piece</small></span></button>
+        <button class="slot bottom empty" data-slot="bottom" aria-label="Choose bottom"><span class="empty-content"><span class="plus">+</span><span class="empty-title">Bottom</span><small>Add a piece</small></span></button>
+        <button class="slot hair empty" data-slot="hair" aria-label="Choose hair"><span class="empty-content"><span class="plus">+</span><span class="empty-title">Hair</span><small>Add a piece</small></span></button>
+        <button class="slot accessory empty" data-slot="accessory" aria-label="Choose accessory"><span class="empty-content"><span class="plus">+</span><span class="empty-title">Accessory</span><small>Add a piece</small></span></button>
+        <button class="slot shoes empty" data-slot="shoes" aria-label="Choose shoes"><span class="empty-content"><span class="plus">+</span><span class="empty-title">Shoes</span><small>Add a piece</small></span></button>
+        <button class="save-button" id="saveLook" aria-label="Save current look" title="Save current look">✓</button>
+      </div>
+    </section>
+
+    <section class="page archive-page" id="page-archive" aria-label="Saved outfits">
+      <div class="page-heading"><div class="eyebrow">The archive / 02</div><h1>Looks worth<br><em>keeping.</em></h1><p>A quiet record of the outfits you've composed and the details that made them yours.</p></div>
+      <div class="archive-layout"><div class="history"><div class="history-top"><div><div class="eyebrow">The archive</div><h2>Saved outfits</h2></div><span class="counter" id="saveCount">0</span></div><div class="history-rule"></div><div class="empty-history" id="emptyHistory"><div class="mark">✦</div><p>Your saved looks will appear here.<br>Make something worth keeping.</p></div><div class="saved-list" id="savedList"></div></div></div>
+    </section>
+
+    <section class="page wardrobe-page" id="page-wardrobe" aria-label="My wardrobe">
+      <div class="page-heading"><div class="eyebrow">Personal wardrobe / 03</div><h1>Keep your<br><em>edit close.</em></h1><p>Log the pieces you already own, organised by the way you get dressed.</p></div>
+      <div class="wardrobe-layout">
+        <form class="log-form" id="logForm"><h2>Add a piece</h2><div class="field"><label for="pieceName">Piece name</label><input id="pieceName" required placeholder="e.g. Navy cardigan" /></div><div class="field"><label for="pieceCategory">Category</label><select id="pieceCategory"><option value="top">Tops</option><option value="bottom">Bottoms</option><option value="hair">Hair</option><option value="accessory">Accessories</option><option value="shoes">Shoes</option></select></div><div class="field"><label for="pieceDescription">Description</label><textarea id="pieceDescription" required placeholder="A few words about the piece"></textarea></div><div class="field"><label for="pieceImage">Image URL <span>(optional)</span></label><input id="pieceImage" type="url" placeholder="https://..." /></div><button class="primary-button" type="submit">Add to wardrobe</button></form>
+        <div class="wardrobe-categories" id="wardrobeCategories"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <div class="modal-header"><div><div class="eyebrow" id="modalEyebrow">Choose a piece</div><h2 id="modalTitle">Select a top</h2><p id="modalDescription">Find the right foundation for your look.</p></div><button class="close" id="closeModal" aria-label="Close catalog">×</button></div>
+      <div class="catalog" id="catalog"></div>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status">Look saved to your archive.</div>
+
+  <script>
+    const catalog = {
+      top: [
+        { title: 'Linen Study', description: 'A breathable ivory button-down.', image: 'https://images.unsplash.com/photo-1603252110481-7ba873bf42ab?auto=format&fit=crop&w=700&q=85' },
+        { title: 'Soft Structure', description: 'A tailored knit in warm stone.', image: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&w=700&q=85' },
+        { title: 'Cherry Point', description: 'A crisp poppy-red silk cami.', image: 'https://images.unsplash.com/photo-1564257577054-7e2e6c1b8f7f?auto=format&fit=crop&w=700&q=85' }
+      ],
+      bottom: [
+        { title: 'Wide Leg No. 1', description: 'High-waisted denim with room to move.', image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=700&q=85' },
+        { title: 'Pleated Line', description: 'An easy, fluid midi in olive.', image: 'https://images.unsplash.com/photo-1583496661160-fb5886a13d27?auto=format&fit=crop&w=700&q=85' },
+        { title: 'Quiet Tailoring', description: 'Relaxed trousers in soft charcoal.', image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=700&q=85' }
+      ],
+      hair: [
+        { title: 'The Low Knot', description: 'Polished, effortless, pulled back.', image: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=700&q=85' },
+        { title: 'Natural Wave', description: 'Loose texture with a soft finish.', image: 'https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?auto=format&fit=crop&w=700&q=85' },
+        { title: 'Short Form', description: 'A clean cut with a little edge.', image: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=700&q=85' }
+      ],
+      accessory: [
+        { title: 'Sculptural Gold', description: 'A small, warm statement for the ear.', image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=700&q=85' },
+        { title: 'Everyday Leather', description: 'A softly structured shoulder bag.', image: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=700&q=85' },
+        { title: 'Silk Accent', description: 'A printed scarf to tie it together.', image: 'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?auto=format&fit=crop&w=700&q=85' }
+      ],
+      shoes: [
+        { title: 'City Loafer', description: 'A classic leather step in oxblood.', image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=700&q=85' },
+        { title: 'Barely There', description: 'Minimal straps and a low heel.', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=700&q=85' },
+        { title: 'Canvas Walk', description: 'A fresh white sneaker for every day.', image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=700&q=85' }
+      ]
+    };
+    const slotNames = { top: 'top', bottom: 'bottom', hair: 'hair', accessory: 'accessory', shoes: 'shoes' };
+    const selections = {};
+    let activeSlot = null;
+    const backdrop = document.getElementById('modalBackdrop');
+    const catalogEl = document.getElementById('catalog');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalDescription = document.getElementById('modalDescription');
+    const savedList = document.getElementById('savedList');
+    const emptyHistory = document.getElementById('emptyHistory');
+    const saveCount = document.getElementById('saveCount');
+    const navCount = document.getElementById('navCount');
+    const wardrobeCategories = document.getElementById('wardrobeCategories');
+    const toast = document.getElementById('toast');
+    const themeSwitch = document.getElementById('themeSwitch');
+    const categoryLabels = { top: 'Tops', bottom: 'Bottoms', hair: 'Hair', accessory: 'Accessories', shoes: 'Shoes' };
+    const themes = ['rose-brown', 'navy-khaki'];
+    const themeLabels = { 'rose-brown': 'Switch to navy-khaki theme', 'navy-khaki': 'Switch to rose-brown theme' };
+
+    function applyTheme(theme) {
+      document.body.dataset.theme = theme;
+      const nextTheme = themes[(themes.indexOf(theme) + 1) % themes.length];
+      themeSwitch.setAttribute('aria-label', themeLabels[theme]);
+      themeSwitch.title = themeLabels[theme];
+      themeSwitch.dataset.nextTheme = nextTheme;
+      localStorage.setItem('atelier-theme', theme);
+    }
+
+    function showPage(pageName) {
+      document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === 'page-' + pageName));
+      document.querySelectorAll('.nav-link').forEach(link => link.classList.toggle('active', link.dataset.page === pageName));
+      window.location.hash = pageName;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderWardrobe() {
+      wardrobeCategories.innerHTML = Object.keys(categoryLabels).map(category => `
+        <section class="category-section">
+          <h2 class="category-title">${categoryLabels[category]} <span>${catalog[category].length} pieces</span></h2>
+          <div class="category-items">${catalog[category].map(item => `
+            <article class="wardrobe-item"><img src="${item.image}" alt="${item.title}"><div><strong>${item.title}</strong><small>${item.description}</small></div></article>`).join('')}</div>
+        </section>`).join('');
+    }
+
+    function openCatalog(slot) {
+      activeSlot = slot;
+      modalTitle.textContent = 'Select a ' + slotNames[slot];
+      modalDescription.textContent = 'Choose the detail that completes your look.';
+      catalogEl.innerHTML = catalog[slot].map((item, index) => `
+        <button class="catalog-item" data-index="${index}">
+          <img src="${item.image}" alt="${item.title}">
+          <span class="item-copy"><strong>${item.title}</strong><p>${item.description}</p></span>
+        </button>`).join('');
+      backdrop.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeCatalog() {
+      backdrop.classList.remove('open');
+      document.body.style.overflow = '';
+      activeSlot = null;
+    }
+
+    function renderSelection(slot, item) {
+      const slotEl = document.querySelector(`[data-slot="${slot}"]`);
+      slotEl.classList.remove('empty');
+      slotEl.innerHTML = `<span class="selected-item"><img src="${item.image}" alt="${item.title}"><span class="selected-label">${item.title}<span>${slotNames[slot]}</span></span><span class="edit-tag">Change</span></span>`;
+    }
+
+    function getPreviewImage() {
+      const chosen = selections.top || selections.bottom || selections.hair || selections.accessory || selections.shoes;
+      return chosen ? chosen.image : 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=700&q=85';
+    }
+
+    function saveLook() {
+      const chosenCount = Object.keys(selections).length;
+      if (!chosenCount) { showToast('Choose at least one piece first.'); return; }
+      const card = document.createElement('article');
+      card.className = 'saved-card';
+      const pieces = Object.values(selections).map(item => item.title).slice(0, 3).join(' · ');
+      const collage = Object.entries(selections).map(([slot, item]) => `<img data-piece="${slot}" src="${item.image}" alt="${item.title}">`).join('');
+      card.innerHTML = `<div class="saved-collage" aria-label="Saved outfit pieces">${collage}</div><div class="saved-card-body"><strong>Look ${savedList.children.length + 1}</strong><p>${pieces}${chosenCount > 3 ? ' +' + (chosenCount - 3) + ' more' : ''}</p><time>Just now</time></div>`;
+      savedList.prepend(card);
+      emptyHistory.style.display = 'none';
+      saveCount.textContent = savedList.children.length;
+      navCount.textContent = '(' + savedList.children.length + ')';
+      showToast('Look saved to your archive.');
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    document.querySelectorAll('.slot').forEach(slot => slot.addEventListener('click', () => openCatalog(slot.dataset.slot)));
+    catalogEl.addEventListener('click', event => {
+      const itemButton = event.target.closest('.catalog-item');
+      if (!itemButton) return;
+      selections[activeSlot] = catalog[activeSlot][Number(itemButton.dataset.index)];
+      renderSelection(activeSlot, selections[activeSlot]);
+      closeCatalog();
+    });
+    document.getElementById('closeModal').addEventListener('click', closeCatalog);
+    backdrop.addEventListener('click', event => { if (event.target === backdrop) closeCatalog(); });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeCatalog(); });
+    document.getElementById('saveLook').addEventListener('click', saveLook);
+    themeSwitch.addEventListener('click', () => applyTheme(themeSwitch.dataset.nextTheme || 'navy'));
+    document.querySelectorAll('.nav-link').forEach(link => link.addEventListener('click', () => showPage(link.dataset.page)));
+    document.querySelector('.brand').addEventListener('click', event => { event.preventDefault(); showPage('builder'); });
+    document.getElementById('logForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const category = document.getElementById('pieceCategory').value;
+      const name = document.getElementById('pieceName').value.trim();
+      const description = document.getElementById('pieceDescription').value.trim();
+      const image = document.getElementById('pieceImage').value.trim() || catalog[category][0].image;
+      catalog[category].unshift({ title: name, description, image });
+      renderWardrobe();
+      event.target.reset();
+      showToast(name + ' added to ' + categoryLabels[category].toLowerCase() + '.');
+    });
+    renderWardrobe();
+    const storedTheme = localStorage.getItem('atelier-theme');
+    applyTheme(storedTheme === 'navy-khaki' || storedTheme === 'navy' || storedTheme === 'khaki' ? 'navy-khaki' : 'rose-brown');
+    const initialPage = window.location.hash.replace('#', '');
+    if (['builder', 'archive', 'wardrobe'].includes(initialPage)) showPage(initialPage);
+  </script>
+</body>
+</html>
